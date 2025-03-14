@@ -40,9 +40,9 @@ func AddMealItem(c *gin.Context) {
 		return
 	}
 
-	var food models.Food
+	var food models.TacoFood
 	if err := config.DB.First(&food, mealItem.FoodID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Alimento não encontrado"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Alimento não encontrado no TACO"})
 		return
 	}
 
@@ -62,7 +62,7 @@ func GetMealSummary(c *gin.Context) {
 	var totalCalories, totalProteins, totalCarbs, totalFats float64
 
 	for _, item := range mealItems {
-		var food models.Food
+		var food models.TacoFood
 		config.DB.First(&food, item.FoodID)
 
 		factor := item.Amount / 100.0
@@ -102,7 +102,7 @@ func GetDailySummary(c *gin.Context) {
 		config.DB.Where("meal_id = ?", meal.ID).Find(&mealItems)
 
 		for _, item := range mealItems {
-			var food models.Food
+			var food models.TacoFood
 			config.DB.First(&food, item.FoodID)
 
 			factor := item.Amount / 100.0
@@ -121,6 +121,7 @@ func GetDailySummary(c *gin.Context) {
 		"fats":     totalFats,
 	})
 }
+
 func GetWeeklySummary(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -131,7 +132,6 @@ func GetWeeklySummary(c *gin.Context) {
 	oneWeekAgo := time.Now().AddDate(0, 0, -7)
 	today := time.Now()
 
-	// Mapa para armazenar macros por dia
 	dailySummary := make(map[string]map[string]float64)
 
 	for i := 0; i < 7; i++ {
@@ -157,7 +157,7 @@ func GetWeeklySummary(c *gin.Context) {
 		config.DB.Where("meal_id = ?", meal.ID).Find(&mealItems)
 
 		for _, item := range mealItems {
-			var food models.Food
+			var food models.TacoFood
 			config.DB.First(&food, item.FoodID)
 
 			factor := item.Amount / 100.0
