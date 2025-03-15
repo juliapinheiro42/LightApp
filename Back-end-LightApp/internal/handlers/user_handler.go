@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/juliapinheiro42/LightApp/config"
+	"github.com/juliapinheiro42/LightApp/database"
 	"github.com/juliapinheiro42/LightApp/internal/models"
 )
 
@@ -16,7 +16,7 @@ func CalculateIMC(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := config.DB.First(&user, userID).Error; err != nil {
+	if err := database.DB.First(&user, userID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Usuário não encontrado"})
 		return
 	}
@@ -56,7 +56,7 @@ func CalculateCalories(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := config.DB.First(&user, userID).Error; err != nil {
+	if err := database.DB.First(&user, userID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Usuário não encontrado"})
 		return
 	}
@@ -100,7 +100,7 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := config.DB.First(&user, userID).Error; err != nil {
+	if err := database.DB.First(&user, userID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Usuário não encontrado"})
 		return
 	}
@@ -118,7 +118,7 @@ func UpdateUser(c *gin.Context) {
 	user.ActivityLevel = updateData.ActivityLevel
 	user.Goal = updateData.Goal
 
-	config.DB.Save(&user)
+	database.DB.Save(&user)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Dados atualizados com sucesso"})
 }

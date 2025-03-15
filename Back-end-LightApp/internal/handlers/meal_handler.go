@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/juliapinheiro42/LightApp/config"
+	"github.com/juliapinheiro42/LightApp/database"
 	"github.com/juliapinheiro42/LightApp/internal/models"
 )
 
@@ -23,7 +23,7 @@ func CreateMeal(c *gin.Context) {
 		return
 	}
 
-	config.DB.Create(&meal)
+	database.DB.Create(&meal)
 	c.JSON(http.StatusCreated, meal)
 }
 
@@ -35,18 +35,18 @@ func AddMealItem(c *gin.Context) {
 	}
 
 	var meal models.Meal
-	if err := config.DB.First(&meal, mealItem.MealID).Error; err != nil {
+	if err := database.DB.First(&meal, mealItem.MealID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Refeição não encontrada"})
 		return
 	}
 
 	var food models.TacoFood
-	if err := config.DB.First(&food, mealItem.FoodID).Error; err != nil {
+	if err := database.DB.First(&food, mealItem.FoodID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Alimento não encontrado no TACO"})
 		return
 	}
 
-	config.DB.Create(&mealItem)
+	database.DB.Create(&mealItem)
 	c.JSON(http.StatusCreated, gin.H{"message": "Alimento adicionado à refeição!"})
 }
 
@@ -54,7 +54,7 @@ func GetMealSummary(c *gin.Context) {
 	var mealItems []models.MealItem
 	mealID := c.Param("meal_id")
 
-	if err := config.DB.Where("meal_id = ?", mealID).Find(&mealItems).Error; err != nil {
+	if err := database.DB.Where("meal_id = ?", mealID).Find(&mealItems).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Refeição não encontrada"})
 		return
 	}
@@ -63,7 +63,7 @@ func GetMealSummary(c *gin.Context) {
 
 	for _, item := range mealItems {
 		var food models.TacoFood
-		config.DB.First(&food, item.FoodID)
+		database.DB.First(&food, item.FoodID)
 
 		factor := item.Amount / 100.0
 		totalCalories += food.Calories * factor
@@ -90,7 +90,7 @@ func GetDailySummary(c *gin.Context) {
 	var meals []models.Meal
 	today := time.Now().Format("2006-01-02")
 
-	if err := config.DB.Where("user_id = ? AND DATE(created_at) = ?", userID, today).Find(&meals).Error; err != nil {
+	if err := database.DB.Where("user_id = ? AND DATE(created_at) = ?", userID, today).Find(&meals).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Nenhuma refeição encontrada para hoje"})
 		return
 	}
@@ -99,11 +99,11 @@ func GetDailySummary(c *gin.Context) {
 
 	for _, meal := range meals {
 		var mealItems []models.MealItem
-		config.DB.Where("meal_id = ?", meal.ID).Find(&mealItems)
+		database.DB.Where("meal_id = ?", meal.ID).Find(&mealItems)
 
 		for _, item := range mealItems {
 			var food models.TacoFood
-			config.DB.First(&food, item.FoodID)
+			database.DB.First(&food, item.FoodID)
 
 			factor := item.Amount / 100.0
 			totalCalories += food.Calories * factor
@@ -145,7 +145,7 @@ func GetWeeklySummary(c *gin.Context) {
 	}
 
 	var meals []models.Meal
-	if err := config.DB.Where("user_id = ? AND DATE(created_at) BETWEEN ? AND ?", userID, oneWeekAgo, today).Find(&meals).Error; err != nil {
+	if err := database.DB.Where("user_id = ? AND DATE(created_at) BETWEEN ? AND ?", userID, oneWeekAgo, today).Find(&meals).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Nenhuma refeição encontrada na última semana"})
 		return
 	}
@@ -154,11 +154,11 @@ func GetWeeklySummary(c *gin.Context) {
 		date := meal.CreatedAt.Format("2006-01-02")
 
 		var mealItems []models.MealItem
-		config.DB.Where("meal_id = ?", meal.ID).Find(&mealItems)
+		database.DB.Where("meal_id = ?", meal.ID).Find(&mealItems)
 
 		for _, item := range mealItems {
 			var food models.TacoFood
-			config.DB.First(&food, item.FoodID)
+			database.DB.First(&food, item.FoodID)
 
 			factor := item.Amount / 100.0
 			dailySummary[date]["calories"] += food.Calories * factor

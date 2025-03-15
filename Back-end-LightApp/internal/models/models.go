@@ -1,10 +1,9 @@
 package models
 
 import (
-	"github.com/juliapinheiro42/LightApp/config"
+	"gorm.io/gorm"
 )
 
-// Estrutura dos alimentos no TACO
 type Food struct {
 	ID       uint    `gorm:"primaryKey" json:"id"`
 	Name     string  `json:"name"`
@@ -14,20 +13,17 @@ type Food struct {
 	Fat      float64 `json:"fat"`
 }
 
-// Criar a tabela no banco
-func MigrateFood() {
-	config.DB.AutoMigrate(&Food{})
+func MigrateFood(db *gorm.DB) error {
+	return db.AutoMigrate(&Food{})
 }
 
-// Salvar alimento no banco
-func (f *Food) Save() error {
-	return config.DB.Create(f).Error
+func (f *Food) Save(db *gorm.DB) error {
+	return db.Create(f).Error
 }
 
-// Buscar alimento pelo nome
-func GetFoodByName(name string) (*Food, error) {
+func GetFoodByName(db *gorm.DB, name string) (*Food, error) {
 	var food Food
-	if err := config.DB.Where("name ILIKE ?", "%"+name+"%").First(&food).Error; err != nil {
+	if err := db.Where("name ILIKE ?", "%"+name+"%").First(&food).Error; err != nil {
 		return nil, err
 	}
 	return &food, nil

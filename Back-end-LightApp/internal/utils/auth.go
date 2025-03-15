@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/juliapinheiro42/LightApp/config"
+	"github.com/juliapinheiro42/LightApp/database"
 	"github.com/juliapinheiro42/LightApp/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -70,12 +70,12 @@ func ValidateRefreshToken(tokenString string) (string, error) {
 
 func RevokeToken(token string) error {
 	revokedToken := models.RevokedToken{Token: token}
-	result := config.DB.Create(&revokedToken)
+	result := database.DB.Create(&revokedToken)
 	return result.Error
 }
 
 func IsTokenRevoked(token string) bool {
 	var revoked models.RevokedToken
-	result := config.DB.Where("token = ?", token).First(&revoked)
+	result := database.DB.Where("token = ?", token).First(&revoked)
 	return result.RowsAffected > 0
 }

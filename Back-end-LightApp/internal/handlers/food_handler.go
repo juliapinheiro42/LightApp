@@ -4,22 +4,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/juliapinheiro42/LightApp/database"
 	"github.com/juliapinheiro42/LightApp/internal/models"
 )
 
-// GetFoodTACO busca um alimento pelo nome no banco de dados local (TACO)
-func GetFoodTACO(c *gin.Context) {
-	query := c.Param("query")
-	if query == "" {
-		query = c.Query("query")
-	}
+func GetFood(c *gin.Context) {
+	name := c.Param("name")
 
-	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Parâmetro de busca ausente"})
-		return
-	}
-
-	food, err := models.GetFoodByName(query)
+	// Busca o alimento pelo nome
+	food, err := models.GetFoodByName(database.DB, name)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Alimento não encontrado"})
 		return

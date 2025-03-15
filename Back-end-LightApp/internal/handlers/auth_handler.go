@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/juliapinheiro42/LightApp/config"
+	"github.com/juliapinheiro42/LightApp/database"
 	"github.com/juliapinheiro42/LightApp/internal/models"
 	"github.com/juliapinheiro42/LightApp/internal/utils"
 )
@@ -19,7 +21,7 @@ func Register(c *gin.Context) {
 
 	// Verifica se o e-mail já está cadastrado
 	var existingUser models.User
-	if err := config.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+	if err := database.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "E-mail já cadastrado"})
 		return
 	}
@@ -32,8 +34,8 @@ func Register(c *gin.Context) {
 	}
 	user.Password = hashedPassword
 
-	// Salva no banco de dados
-	if err := config.DB.Create(&user).Error; err != nil {
+	if err := database.DB.Create(&user).Error; err != nil {
+		log.Printf("Erro ao criar usuário: %v", err) // Log do erro
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar usuário"})
 		return
 	}
@@ -52,7 +54,7 @@ func Login(c *gin.Context) {
 	}
 
 	// Busca o usuário no banco de dados
-	if err := config.DB.Where("email = ?", request.Email).First(&user).Error; err != nil {
+	if err := database.DB.Where("email = ?", request.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuário não encontrado"})
 		return
 	}
