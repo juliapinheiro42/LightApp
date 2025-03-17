@@ -2,19 +2,76 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { Bell, Search, Calendar, Plus } from "lucide-react-native";
+import { useAuth } from "../Utils/AuthContext"; // Importe o hook personalizado
+
+// Tipagem para os dados das refeições
+type Meal = {
+  name: string;
+  icon: string;
+  id: string; // Adicione um ID para cada refeição
+};
+
+// Tipagem para o resumo diário
+type DailySummary = {
+  calories: number;
+  proteins: number;
+  carbs: number;
+  fats: number;
+};
 
 const HomeScreen = () => {
   const router = useRouter();
-  const [meals, setMeals] = useState<{ name: string; icon: string }[]>([]);
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [dailySummary, setDailySummary] = useState<DailySummary>({
+    calories: 0,
+    proteins: 0,
+    carbs: 0,
+    fats: 0,
+  });
 
+  const { token } = useAuth(); // Use o hook personalizado
+
+  // Efeito para carregar as refeições e o resumo diário
   useEffect(() => {
     setMeals([
-      { name: "Café da Manhã", icon: "☀️" },
-      { name: "Almoço", icon: "🌞" },
-      { name: "Jantar", icon: "🌇" },
-      { name: "Lanches/Outros", icon: "🌙" },
+      { name: "Café da Manhã", icon: "☀️", id: "1" },
+      { name: "Almoço", icon: "🌞", id: "2" },
+      { name: "Jantar", icon: "🌇", id: "3" },
+      { name: "Lanches/Outros", icon: "🌙", id: "4" },
     ]);
-  }, []);
+
+    if (token) {
+      // Busca o resumo da primeira refeição como exemplo
+      fetchDailySummary("1");
+    }
+  }, [token]);
+
+  // Função para buscar o resumo diário de uma refeição específica
+  const fetchDailySummary = async (mealId: string) => {
+    try {
+      const response = await fetch(`http://10.0.2.2:8081/api/meals/${mealId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar dados");
+      }
+
+      const data = await response.json();
+      setDailySummary({
+        calories: data.calories || 0,
+        proteins: data.proteins || 0,
+        carbs: data.carbs || 0,
+        fats: data.fats || 0,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar resumo diário:", error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -41,11 +98,11 @@ const HomeScreen = () => {
           <Text style={styles.summaryTitle}>DIÁRIO ALIMENTAR</Text>
           <View style={styles.summaryContent}>
             <View>
-              <Text style={styles.summaryText}>Gorduras: 0g</Text>
-              <Text style={styles.summaryText}>Carboidratos: 0g</Text>
-              <Text style={styles.summaryText}>Proteínas: 0g</Text>
+              <Text style={styles.summaryText}>Gorduras: {dailySummary.fats.toFixed(1)}g</Text>
+              <Text style={styles.summaryText}>Carboidratos: {dailySummary.carbs.toFixed(1)}g</Text>
+              <Text style={styles.summaryText}>Proteínas: {dailySummary.proteins.toFixed(1)}g</Text>
             </View>
-            <Text style={styles.caloriesText}>Calorias: 0</Text>
+            <Text style={styles.caloriesText}>Calorias: {dailySummary.calories.toFixed(0)}</Text>
           </View>
         </View>
 
@@ -55,7 +112,13 @@ const HomeScreen = () => {
           <TouchableOpacity
             key={index}
             style={styles.mealButton}
-            onPress={() => router.push(`/meal?mealName=${meal.name}`)}
+            onPress={() => {
+              fetchDailySummary(meal.id); // Busca o resumo da refeição ao clicar
+              router.push({
+                pathname: "../meal",
+                params: { mealName: meal.name, mealId: meal.id }, // Passa o nome e o ID da refeição
+              });
+            }}
           >
             <View style={styles.mealContent}>
               <Text style={styles.mealIcon}>{meal.icon}</Text>
@@ -78,7 +141,7 @@ const HomeScreen = () => {
 
 export default HomeScreen;
 
-// Estilos
+// Estilos (mantidos iguais)
 const styles = StyleSheet.create({
   container: {
     flex: 1,

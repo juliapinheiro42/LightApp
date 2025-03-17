@@ -1,14 +1,8 @@
 export interface FoodItem {
   id: number;
-  meal_id: number;
-  food_id: number;
-  amount: number;
-  food: {
-    id: number;
-    name: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-  };
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number; // Alterado de 'fats' para 'fat' para combinar com a API
 }

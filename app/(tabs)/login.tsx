@@ -10,12 +10,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage"; 
-import { AuthContext } from "./Utils/AuthContext";
+import { AuthContext } from "../Utils/AuthContext";
 
 // Definição do tipo correto para a resposta da API
 type LoginResponse = {
   access_token: string;
   refresh_token: string;
+  user_id: number; 
 };
 
 export default function LoginScreen() {
@@ -25,16 +26,16 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const authContext = useContext(AuthContext);
   if (!authContext) return null;
-  const { setToken } = authContext;
+  const { setToken, setUserId  } = authContext;
 
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Erro", "Preencha todos os campos!");
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       const response = await fetch("http://10.0.2.2:8081/api/login", {
         method: "POST",
@@ -43,29 +44,39 @@ export default function LoginScreen() {
         },
         body: JSON.stringify({ email, password }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Erro desconhecido no login.");
       }
-
+  
       const data: LoginResponse = await response.json();
+console.log("Resposta da API:", data); // Depuração
 
-      // Armazenar os tokens no AsyncStorage
-      await AsyncStorage.setItem("access_token", data.access_token);
-      await AsyncStorage.setItem("refresh_token", data.refresh_token);
-
-      setToken(data.access_token); // Atualiza o estado do token
-
+if (data.user_id === undefined) {
+  throw new Error("user_id não encontrado na resposta da API.");
+}
+  
+      // Armazenar os tokens e o userId no AsyncStorage
+      await AsyncStorage.multiSet([
+        ["access_token", data.access_token],
+        ["refresh_token", data.refresh_token],
+        ["user_id", data.user_id.toString()], // Armazenar o userId como string
+      ]);
+  
+      // Atualizar o contexto com o token e o userId
+      setToken(data.access_token);
+      setUserId(data.user_id); // Defina o userId no contexto
+  
       Alert.alert("Sucesso", "Login realizado!");
-      router.push("/home"); // Redireciona para a tela inicial
+      router.push("/(tabs)"); // Redireciona para a tela inicial
     } catch (error: unknown) {
       let errorMessage = "Ocorreu um erro ao tentar logar!";
       
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-
+  
       console.error("Erro ao fazer login:", errorMessage);
       Alert.alert("Erro", errorMessage);
     } finally {

@@ -1,4 +1,4 @@
-import { View, ActivityIndicator, Text } from "react-native";
+import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
 import { useContext } from "react";
 import { Stack } from "expo-router";
 import { ThemeProvider, DarkTheme, DefaultTheme } from "@react-navigation/native";
@@ -18,21 +18,13 @@ function Layout() {
   const authContext = useContext(AuthContext);
 
   if (!authContext) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#000" }}>
-        <Text style={{ color: "#fff" }}>Erro: AuthContext não fornecido.</Text>
-      </View>
-    );
+    return <ErrorScreen message="Erro: AuthContext não foi carregado corretamente." />;
   }
 
   const { token, loading } = authContext;
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#000" }}>
-        <ActivityIndicator size="large" color="#fff" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -57,3 +49,35 @@ function Layout() {
     </ThemeProvider>
   );
 }
+
+// ⏳ Tela de carregamento enquanto o app verifica a autenticação
+function LoadingScreen() {
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color="#fff" />
+    </View>
+  );
+}
+
+// ❌ Tela de erro caso o contexto falhe
+function ErrorScreen({ message }: { message: string }) {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.errorText}>{message}</Text>
+    </View>
+  );
+}
+
+// 🎨 Estilos corrigidos
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center" as const, // Garante tipagem correta
+    alignItems: "center" as const, // Garante tipagem correta
+    backgroundColor: "#000",
+  },
+  errorText: {
+    color: "#fff",
+    textAlign: "center",
+  },
+});

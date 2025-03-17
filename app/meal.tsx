@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { useLocalSearchParams } from "expo-router"; // Importe o hook para acessar os parâmetros
 import { AuthContext } from "./Utils/AuthContext";
 import { FoodItem } from "./Types/FoodItem";
 
@@ -11,7 +12,12 @@ export default function MealScreen() {
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
 
+  // Extrai o ID da refeição da rota usando useLocalSearchParams
+  const { mealId } = useLocalSearchParams<{ mealId: string }>();
+
+  // Busca alimentos pelo nome
   useEffect(() => {
     const fetchFoodByName = async () => {
       if (!token || !search.trim()) {
@@ -20,7 +26,7 @@ export default function MealScreen() {
       }
 
       try {
-        const res = await fetch(`http://10.0.2.2:8081/api/foods/taco/${search}`, {
+        const res = await fetch(`http://10.0.2.2:8081/debug/food?name=${search}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -51,10 +57,52 @@ export default function MealScreen() {
     return () => clearTimeout(debounceTimer);
   }, [search, token]);
 
+  // Adiciona o alimento selecionado à refeição
+  const addFoodToMeal = async (food: FoodItem) => {
+    if (!token || !mealId || !food.id) {
+      setError("Dados incompletos para adicionar o alimento.");
+      return;
+    }
+  
+    try {
+      // Monta o corpo da requisição
+      const requestBody = {
+        meal_id: mealId, // ID da refeição
+        food_id: food.id, // ID do alimento
+        amount: 100, // Quantidade em gramas (pode ser ajustada)
+        user_id: authContext.userId,
+      };
+  
+      // Faz a requisição POST
+      const response = await fetch("http://10.0.2.2:8081/api/meals", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+  
+      // Verifica se a requisição foi bem-sucedida
+      if (!response.ok) {
+        const errorResponse = await response.text();
+        throw new Error(`Erro ao adicionar alimento à refeição: ${errorResponse}`);
+      }
+  
+      // Atualiza o estado e exibe uma mensagem de sucesso
+      setSelectedFood(food);
+      setError(null);
+      alert("Alimento adicionado à refeição com sucesso!");
+    } catch (err) {
+      console.error("🚨 Erro ao adicionar alimento:", err);
+      setError("Erro ao adicionar alimento à refeição.");
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Título */}
-      <Text style={styles.title}>Refeição</Text>
+      <Text style={styles.title}>Adicionar Alimento à Refeição</Text>
 
       {/* Campo de busca */}
       <TextInput
@@ -70,25 +118,37 @@ export default function MealScreen() {
 
       {/* Lista de alimentos encontrados */}
       <FlatList
-        data={foods}
-        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-        renderItem={({ item }) => (
-          <View style={styles.foodDetails}>
-            <Text style={styles.foodDetailName}>{item.food.name || "Nome não disponível"}</Text>
-            <Text style={styles.foodDetailText}>Calorias: {item.food.calories ?? "N/A"}</Text>
-            <Text style={styles.foodDetailText}>Proteína: {item.food.protein ?? "N/A"}g</Text>
-            <Text style={styles.foodDetailText}>Carboidratos: {item.food.carbs ?? "N/A"}g</Text>
-            <Text style={styles.foodDetailText}>Gorduras: {item.food.fats ?? "N/A"}g</Text>
-          </View>
-        )}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {search ? "Nenhum alimento encontrado." : "Digite para buscar alimentos."}
-            </Text>
-          </View>
-        )}
-      />
+  data={foods}
+  keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+  renderItem={({ item }) => {
+    console.log("🧐 Estrutura de item recebido:", item); // DEBUG
+    return (
+      <TouchableOpacity style={styles.foodItem} onPress={() => addFoodToMeal(item)}>
+        <Text style={styles.foodName}>{item?.name ?? "Nome não disponível"}</Text>
+        <Text style={styles.foodDetails}>Calorias: {item?.calories ?? "N/A"}</Text>
+        <Text style={styles.foodDetails}>Proteína: {item?.protein ?? "N/A"}g</Text>
+        <Text style={styles.foodDetails}>Carboidratos: {item?.carbs ?? "N/A"}g</Text>
+        <Text style={styles.foodDetails}>Gorduras: {item?.fat ?? "N/A"}g</Text>
+      </TouchableOpacity>
+    );
+  }}
+  ListEmptyComponent={() => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>
+        {search ? "Nenhum alimento encontrado." : "Digite para buscar alimentos."}
+      </Text>
+    </View>
+  )}
+/>
+
+
+      {/* Detalhes do alimento selecionado */}
+      {selectedFood && (
+        <View style={styles.selectedFoodContainer}>
+          <Text style={styles.selectedFoodTitle}>Alimento Selecionado:</Text>
+          <Text style={styles.selectedFoodName}>{selectedFood.name}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -119,19 +179,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 16,
   },
-  foodDetails: {
+  foodItem: {
     backgroundColor: "#1F2937",
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
   },
-  foodDetailName: {
+  foodName: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 8,
   },
-  foodDetailText: {
+  foodDetails: {
     color: "#9CA3AF",
     fontSize: 14,
   },
@@ -140,6 +200,22 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   emptyText: {
+    color: "#9CA3AF",
+    fontSize: 14,
+  },
+  selectedFoodContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: "#374151",
+    borderRadius: 8,
+  },
+  selectedFoodTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  selectedFoodName: {
     color: "#9CA3AF",
     fontSize: 14,
   },
